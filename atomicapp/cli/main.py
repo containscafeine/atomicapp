@@ -94,6 +94,13 @@ def cli_run(args):
     sys.exit(0)
 
 
+def cli_ps(args):
+    argdict = args.__dict__
+    nm = NuleculeManager(app_spec=argdict['app_spec'])
+    nm.ps(**argdict)
+    sys.exit(0)
+
+
 def cli_stop(args):
     argdict = args.__dict__
     nm = NuleculeManager(app_spec=argdict['app_spec'])
@@ -369,6 +376,11 @@ class CLI():
         # globals parser.
         globals_parser.usage = argparse.SUPPRESS
         toplevel_parser.epilog = globals_parser.format_help()
+
+        # === "ps" SUBPARSER ===
+        ps_subparser = toplevel_subparsers.add_parser(
+            "ps", parents=[globals_parser])
+        ps_subparser.set_defaults(func=cli_ps)
 
         # Return the toplevel parser
         return toplevel_parser

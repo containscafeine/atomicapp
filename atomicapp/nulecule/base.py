@@ -38,7 +38,10 @@ from atomicapp.constants import (APP_ENT_PATH,
                                  NAME_KEY,
                                  INHERIT_KEY,
                                  ARTIFACTS_KEY,
-                                 DEFAULT_PROVIDER)
+                                 DEFAULT_PROVIDER,
+                                 REQUIREMENTS_KEY,
+                                 CACHE_DIR)
+
 from atomicapp.utils import Utils
 from atomicapp.requirements import Requirements
 from atomicapp.nulecule.lib import NuleculeBase
@@ -292,6 +295,15 @@ class Nulecule(NuleculeBase):
         """
         for component in self.components:
             component.render(provider_key=provider_key, dryrun=dryrun)
+
+    def context(self, app_path):
+        # create an entry in deployments file in CACHE_DIR
+        # pull endpoints from Nulecule in app_path
+        # put the endpoints at the time of running atomicapp in app_path/.runtime
+        deployments_file = "deployments"
+        context_file = open(os.path.join(CACHE_DIR, deployments_file), "a")
+        context_file.write(app_path)
+        context_file.close()
 
 
 class NuleculeComponent(NuleculeBase):

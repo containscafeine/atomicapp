@@ -236,7 +236,6 @@ class NuleculeManager(object):
         """
         self.answers_format = answers_format or ANSWERS_FILE_SAMPLE_FORMAT
         dryrun = kwargs.get('dryrun') or False
-
         # Call unpack. If the app doesn't exist it will be pulled. If
         # it does exist it will be just be loaded and returned
         self.nulecule = self.unpack(dryrun=dryrun, config=self.answers)
@@ -249,6 +248,7 @@ class NuleculeManager(object):
         self.nulecule.load_config(config=self.nulecule.config, ask=ask)
         self.nulecule.render(cli_provider, dryrun)
         self.nulecule.run(cli_provider, dryrun)
+        self.nulecule.context(self.app_path)
         runtime_answers = self._get_runtime_answers(
             self.nulecule.config, cli_provider)
         self._write_answers(
