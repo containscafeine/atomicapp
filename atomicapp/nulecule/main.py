@@ -288,33 +288,38 @@ class NuleculeManager(object):
     def ps(self):
         deployments_file = os.path.join(CACHE_DIR, "deployments")
         with open(deployments_file, 'r') as f:
-            deployed_apps = f.readlines()
+            deployed_apps = f.read().splitlines()
 
         # check in .runtime files and query the endpoints
         for deployment_path in deployed_apps:
-            runtime_path = os.path.join(deployment_path, "/.runtime")
-            app_name = deployment_path.split(CACHE_DIR+"/")
+            runtime_path = os.path.join(deployment_path, ".runtime")
+            app_name = deployment_path.split(CACHE_DIR+"/")[1]
             if os.path.isfile(runtime_path):
                 # check for endpoints connectivity
-                reachable_ep, unreachabe_ep = list()
+                reachable_ep, unreachabe_ep = list(), list()
                 with open(runtime_path, 'r') as r:
-                    for endpoint in r.readline():
+                    for endpoint in r.read().splitlines():
                         ep_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        ep_conn = ep_sock.connect_ex(('localhost', int(endpoints)))
-                        if ep_conn == 0:
-                            reachable_ep.append(endpoint)
+                        try:
+                            ep_conn = ep_sock.connect_ex(('127.0.0.1', int(endpoint)))
+                        except OverflowError as e:
+                            print("{}.\nError in {}".format(e, runtime_path))
                         else:
-                            unreachabe_ep.append(endpoint)
+                            if ep_conn == 0:
+                                reachable_ep.append(endpoint)
+                            else:
+                                unreachabe_ep.append(endpoint)
 
                 if len(reachable_ep) > 0:
                     print("{} : {}".format(app_name, reachable_ep))
+                    print("deployed on {}".format(deployment_path))
                 elif len(unreachabe_ep) > 0:
                     logger.debug("{} is not reachable at {}"
                                  .format(app_name, unreachabe_ep))
 
             else:
                 logger.debug(".runtime file not found for {}"
-                     .format(deployment_path))
+                             .format(deployment_path))
 
     def _process_answers(self):
         """
