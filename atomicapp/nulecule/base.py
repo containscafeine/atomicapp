@@ -298,12 +298,55 @@ class Nulecule(NuleculeBase):
 
     def context(self, app_path):
         # create an entry in deployments file in CACHE_DIR
+        deployments_file = os.path.join(CACHE_DIR, "deployments")
+
+        with open(deployments_file, "a") as add_app_path:
+            add_app_path.write(app_path+"\n")
+
         # pull endpoints from Nulecule in app_path
+        nulecule_path = os.path.join(app_path, MAIN_FILE)
+
+        if os.path.exists(nulecule_path):
+            with open(nulecule_path, 'r') as f:
+                nulecule_data = f.read()
+        else:
+            raise NuleculeException("No Nulecule file exists in directory: %s" % app_path)
+
+        # By default, AnyMarkup converts all formats to YAML when parsing.
+        # Thus the rescue works either on JSON or YAML.
+        try:
+            nulecule_data = anymarkup.parse(nulecule_data)
+        except (yaml.parser.ParserError, AnyMarkupError), e:
+            line = re.search('line (\d+)', str(e)).group(1)
+            column = re.search('column (\d+)', str(e)).group(1)
+
+            output = ""
+            for i, l in enumerate(nulecule_data.splitlines()):
+                if (i == int(line) - 1) or (i == int(line)) or (i == int(line) + 1):
+                    output += "%s %s\n" % (str(i), str(l))
+
+            raise NuleculeException("Failure parsing %s file. Validation error on line %s, column %s:\n%s"
+                                    % (nulecule_path, line, column, output))
+
+        endpoint = list()
+
+        for find_graph in nulecule_data.keys():
+            if find_graph == u'graph':
+                for graph_list in nulecule_data[find_graph]:
+                    for find_params in graph_list.keys():
+                        if find_params == u'params':
+                            for params_list in graph_list[find_params]:
+                                for find_name, find_hostport in params_list.items():
+                                    if find_name == u'name' and find_hostport == u'hostport':
+                                        for find_default in params_list.keys():
+                                            if find_default == u'default':
+                                                endpoint.append(params_list[find_default])
+
         # put the endpoints at the time of running atomicapp in app_path/.runtime
-        deployments_file = "deployments"
-        context_file = open(os.path.join(CACHE_DIR, deployments_file), "a")
-        context_file.write(app_path)
-        context_file.close()
+        runtime_file = os.path.join(app_path + "/.runtime")
+        with open(runtime_file, "a") as f:
+            for endpoints in endpoint:
+                f.write("{}\n".format(endpoints))
 
 
 class NuleculeComponent(NuleculeBase):
