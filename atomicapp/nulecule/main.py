@@ -35,10 +35,12 @@ from atomicapp.constants import (GLOBAL_CONF,
                                  LOGGER_COCKPIT,
                                  LOGGER_DEFAULT,
                                  MAIN_FILE,
-                                 PROVIDER_KEY)
+                                 PROVIDER_KEY,
+                                 CACHE_DIR)
 from atomicapp.nulecule.base import Nulecule
 from atomicapp.nulecule.exceptions import NuleculeException
 from atomicapp.utils import Utils
+import socket
 
 cockpit_logger = logging.getLogger(LOGGER_COCKPIT)
 logger = logging.getLogger(LOGGER_DEFAULT)
@@ -282,6 +284,37 @@ class NuleculeManager(object):
         self.uninstall()
         distutils.dir_util.remove_tree(self.unpack_path)
         self.initialize()
+
+    def ps(self):
+        deployments_file = os.path.join(CACHE_DIR, "deployments")
+        with open(deployments_file, 'r') as f:
+            deployed_apps = f.readlines()
+
+        # check in .runtime files and query the endpoints
+        for deployment_path in deployed_apps:
+            runtime_path = os.path.join(deployment_path, "/.runtime")
+            app_name = deployment_path.split(CACHE_DIR+"/")
+            if os.path.isfile(runtime_path):
+                # check for endpoints connectivity
+                reachable_ep, unreachabe_ep = list()
+                with open(runtime_path, 'r') as r:
+                    for endpoint in r.readline():
+                        ep_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        ep_conn = ep_sock.connect_ex(('localhost', int(endpoints)))
+                        if ep_conn == 0:
+                            reachable_ep.append(endpoint)
+                        else:
+                            unreachabe_ep.append(endpoint)
+
+                if len(reachable_ep) > 0:
+                    print("{} : {}".format(app_name, reachable_ep))
+                elif len(unreachabe_ep) > 0:
+                    logger.debug("{} is not reachable at {}"
+                                 .format(app_name, unreachabe_ep))
+
+            else:
+                logger.debug(".runtime file not found for {}"
+                     .format(deployment_path))
 
     def _process_answers(self):
         """

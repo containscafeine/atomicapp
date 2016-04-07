@@ -94,10 +94,9 @@ def cli_run(args):
     sys.exit(0)
 
 
-def cli_ps(args):
-    argdict = args.__dict__
-    nm = NuleculeManager(app_spec=argdict['app_spec'])
-    nm.ps(**argdict)
+def cli_ps():
+    nm = NuleculeManager()
+    nm.ps()
     sys.exit(0)
 
 
